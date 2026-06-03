@@ -13,6 +13,7 @@ import {
   getBookmarks, toggleBookmark, submitWaitlistEmail, 
   getWaitlistEmails, getUserInterests, toggleUserInterest 
 } from '@/utils/userStore';
+import { submitWaitlistEmailToSupabase } from '@/utils/supabase';
 
 export default function Home() {
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
@@ -20,6 +21,7 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [waitlistError, setWaitlistError] = useState('');
+  const [isSubmittingWaitlist, setIsSubmittingWaitlist] = useState(false);
 
   // Hydrate bookmarks and interests from localStorage on mount
   useEffect(() => {
@@ -38,19 +40,45 @@ export default function Home() {
     setSelectedInterests(getUserInterests());
   };
 
-  const handleWaitlistSubmit = (e: React.FormEvent) => {
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !email.includes('@')) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
       setWaitlistError('Please enter a valid email address.');
       return;
     }
-    const success = submitWaitlistEmail(email.trim());
-    if (success) {
+
+    // Local check to avoid unnecessary network request if already submitted locally
+    const localEmails = getWaitlistEmails();
+    if (localEmails.includes(cleanEmail)) {
+      setWaitlistError('This email is already on our waitlist!');
+      return;
+    }
+
+    setWaitlistError('');
+    setIsSubmittingWaitlist(true);
+
+    try {
+      // Submit to Supabase
+      await submitWaitlistEmailToSupabase(cleanEmail);
+
+      // On success, track in localStorage and update state
+      submitWaitlistEmail(cleanEmail);
       setWaitlistSuccess(true);
       setWaitlistError('');
       setEmail('');
-    } else {
-      setWaitlistError('This email is already on our waitlist!');
+    } catch (err: any) {
+      console.error('Waitlist submission error:', err);
+      // Handle db duplicate email unique constraint gracefully
+      if (err?.code === '23505' || err?.message?.includes('already exists') || err?.message?.includes('unique constraint')) {
+        // Sync locally so the user doesn't get prompted again
+        submitWaitlistEmail(cleanEmail);
+        setWaitlistError('This email is already on our waitlist!');
+      } else {
+        setWaitlistError(err?.message || 'Failed to join waitlist. Please check your connection and try again.');
+      }
+    } finally {
+      setIsSubmittingWaitlist(false);
     }
   };
 
@@ -309,15 +337,19 @@ export default function Home() {
                       setEmail(e.target.value);
                       setWaitlistError('');
                     }}
+                    disabled={isSubmittingWaitlist}
                     placeholder="Enter your email address"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-white/5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     required
                   />
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md transition-colors cursor-pointer whitespace-nowrap"
+                    disabled={isSubmittingWaitlist}
+                    className={`px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md transition-colors whitespace-nowrap ${
+                      isSubmittingWaitlist ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    }`}
                   >
-                    Join Waitlist
+                    {isSubmittingWaitlist ? 'Joining...' : 'Join Waitlist'}
                   </button>
                 </div>
                 {waitlistError && (

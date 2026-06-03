@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Star, MessageSquare, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { submitFeedbackToSupabase, submitCareerRequestToSupabase } from '@/utils/supabase';
 
 interface FeedbackCollectionProps {
   careerTitle?: string;
@@ -13,9 +14,10 @@ export default function FeedbackCollection({ careerTitle }: FeedbackCollectionPr
   const [suggestion, setSuggestion] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (rating === 0) {
@@ -24,8 +26,27 @@ export default function FeedbackCollection({ careerTitle }: FeedbackCollectionPr
     }
     
     setError('');
-    // Mock API submit delay
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+
+    try {
+      const sourcePage = typeof window !== 'undefined' ? window.location.pathname : 'unknown';
+      if (careerTitle) {
+        // Feedback on a specific career page
+        await submitFeedbackToSupabase(rating, suggestion, careerTitle, email || null, sourcePage);
+      } else {
+        // General roadmap request/feedback on homepage
+        await Promise.all([
+          submitCareerRequestToSupabase(suggestion, email || null, sourcePage),
+          submitFeedbackToSupabase(rating, suggestion, 'home', email || null, sourcePage)
+        ]);
+      }
+      setIsSubmitted(true);
+    } catch (err: any) {
+      console.error('Feedback submission error:', err);
+      setError(err?.message || 'Failed to submit feedback. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -33,6 +54,7 @@ export default function FeedbackCollection({ careerTitle }: FeedbackCollectionPr
     setSuggestion('');
     setEmail('');
     setIsSubmitted(false);
+    setError('');
   };
 
   return (
@@ -69,12 +91,14 @@ export default function FeedbackCollection({ careerTitle }: FeedbackCollectionPr
                         key={star}
                         type="button"
                         onClick={() => {
+                          if (isSubmitting) return;
                           setRating(star);
                           setError('');
                         }}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        className="p-1 text-slate-600 hover:scale-125 focus:outline-none transition-transform"
+                        onMouseEnter={() => !isSubmitting && setHoverRating(star)}
+                        onMouseLeave={() => !isSubmitting && setHoverRating(0)}
+                        disabled={isSubmitting}
+                        className="p-1 text-slate-600 hover:scale-125 focus:outline-none transition-transform disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Star 
                           className={`h-7 w-7 transition-colors ${
@@ -100,12 +124,13 @@ export default function FeedbackCollection({ careerTitle }: FeedbackCollectionPr
                 <textarea
                   value={suggestion}
                   onChange={(e) => setSuggestion(e.target.value)}
+                  disabled={isSubmitting}
                   placeholder={careerTitle 
                     ? "e.g., Please add a Python Pandas project, or update the PL-300 exam cost..."
                     : "e.g., Cloud Architect, Full Stack Developer, Product Manager..."
                   }
                   rows={4}
-                  className="block w-full px-4 py-3 rounded-xl bg-white/2 border border-white/5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 resize-none transition-all"
+                  className="block w-full px-4 py-3 rounded-xl bg-white/2 border border-white/5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 resize-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   required
                 />
               </div>
@@ -119,8 +144,9 @@ export default function FeedbackCollection({ careerTitle }: FeedbackCollectionPr
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
                   placeholder="name@example.com"
-                  className="block w-full px-4 py-3 rounded-xl bg-white/2 border border-white/5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-all"
+                  className="block w-full px-4 py-3 rounded-xl bg-white/2 border border-white/5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -135,9 +161,12 @@ export default function FeedbackCollection({ careerTitle }: FeedbackCollectionPr
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 hover:shadow-lg hover:shadow-violet-500/20 text-xs font-semibold text-white transition-all cursor-pointer"
+                  disabled={isSubmitting}
+                  className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 hover:shadow-lg hover:shadow-violet-500/20 text-xs font-semibold text-white transition-all ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
                 >
-                  <span>Submit Feedback</span>
+                  <span>{isSubmitting ? 'Submitting...' : 'Submit Feedback'}</span>
                   <Send className="h-3.5 w-3.5" />
                 </button>
               </div>
