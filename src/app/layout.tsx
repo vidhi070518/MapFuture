@@ -17,14 +17,38 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "MapFuture - Discover Your Career Roadmap",
-  description: "Stop searching. Start progressing. MapFuture helps students, graduates, and career changers discover the exact paths to their target careers with interactive roadmaps, verified certifications, and portfolio projects.",
-  keywords: "career roadmap, learning path, AI engineer, data analyst, cybersecurity analyst, tech careers, certifications, coding projects",
+  title: "MapFuture — Tech Career Roadmaps for Beginners",
+  
+  description:
+    "Explore beginner-friendly tech career roadmaps, verified certifications, free courses, portfolio projects, and structured learning paths for Data Analytics, AI Engineering, Cybersecurity, and more.",
+
+  keywords: [
+    "tech career roadmap",
+    "data analyst roadmap",
+    "AI engineer roadmap",
+    "cybersecurity roadmap",
+    "career guidance",
+    "free tech courses",
+    "student career platform",
+    "learning path",
+    "coding roadmap",
+    "career switch into tech",
+    "data analytics learning path",
+    "machine learning roadmap",
+  ],
+
   openGraph: {
-    title: "MapFuture - Discover Your Career Roadmap",
-    description: "Stop searching. Start progressing. Discover interactive career pathways, verified course recommendations, and portfolio-worthy projects.",
+    title: "MapFuture — Tech Career Roadmaps for Beginners",
+
+    description:
+      "Structured learning paths, verified courses, and project guidance for students and aspiring tech professionals.",
+
+    url: "https://map-future.vercel.app",
+
+    siteName: "MapFuture",
+
     type: "website",
-  }
+  },
 };
 
 export default function RootLayout({
