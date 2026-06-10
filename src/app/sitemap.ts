@@ -1,4 +1,6 @@
-export default function sitemap() {
+import { MetadataRoute } from 'next'
+
+export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: 'https://map-future.vercel.app',
@@ -16,5 +18,5 @@ export default function sitemap() {
       url: 'https://map-future.vercel.app/careers/cybersecurity-analyst',
       lastModified: new Date(),
     },
-  ];
+  ]
 }
