@@ -40,22 +40,33 @@ canonical: "/",
 
 openGraph: {
 title: "MapFuture - Discover Your Career Roadmap",
+
+```
 description:
-"Discover structured learning paths, certifications, and portfolio projects for tech careers.",
+  "Discover structured learning paths, certifications, and portfolio projects for tech careers.",
+
 url: "https://map-future.vercel.app",
+
 siteName: "MapFuture",
+
 type: "website",
+```
+
 },
 
 twitter: {
 card: "summary_large_image",
+
+```
 title: "MapFuture",
+
 description:
-"Structured roadmaps for modern tech careers.",
+  "Structured roadmaps for modern tech careers.",
+```
+
 },
 };
 
-};
 
 export default function RootLayout({
   children,
